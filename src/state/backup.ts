@@ -2,7 +2,8 @@ import { LEGACY_EXERCISE_IDS, EXERCISES } from '../domain/exercises';
 import { isBuiltInFood } from '../domain/foods';
 import { clamp } from '../domain/format';
 import { FAT_MAX, FAT_MIN } from '../domain/calc';
-import { DAY_COUNT, SCHEMA_VERSION, type AppState, type DayPlan, type ExerciseDef, type Fields, type Food, type FoodWeight, type MealSlot, type PlanItem, type ScheduleEntry, type YieldOverride } from '../domain/types';
+import { MAX_COOKED_WEIGHT, MAX_INGREDIENT_SERVINGS, MAX_PORTIONS, roundAmount } from '../domain/recipes';
+import { DAY_COUNT, SCHEMA_VERSION, type AppState, type DayPlan, type ExerciseDef, type Fields, type Food, type FoodWeight, type MealSlot, type PlanItem, type Recipe, type RecipeIngredient, type ScheduleEntry, type YieldOverride } from '../domain/types';
 import { DEFAULT_FIELDS, DEFAULT_MEAL_SLOTS, defaultState } from './defaults';
 
 export const APP_ID = 'body-composition-meal-planner';
@@ -95,6 +96,33 @@ function sanitizeFood(raw: unknown): Food | null {
   return food;
 }
 
+/** Ingredients must be plain foods that exist. A recipe left with none is kept, since plans may use it. */
+function sanitizeRecipe(raw: unknown, isBaseFood: (id: string) => boolean, dropped: { ingredients: number }): Recipe | null {
+  if (!isObject(raw)) return null;
+  const id = text(raw.id, 80);
+  const name = text(raw.name, 120);
+  const portions = finite(raw.portions);
+  if (!id.startsWith('recipe-') || !SAFE_ID.test(id) || !name || portions === null) return null;
+  const ingredients: RecipeIngredient[] = [];
+  for (const entry of Array.isArray(raw.ingredients) ? raw.ingredients : []) {
+    if (!isObject(entry)) continue;
+    const foodId = text(entry.foodId, 80);
+    const servings = finite(entry.servings);
+    if (servings === null || servings <= 0) continue;
+    if (!isBaseFood(foodId)) { dropped.ingredients++; continue; }
+    const amount = clamp(roundAmount(servings), 0.001, MAX_INGREDIENT_SERVINGS);
+    const same = ingredients.find((i) => i.foodId === foodId);
+    if (same) { same.servings = Math.min(MAX_INGREDIENT_SERVINGS, roundAmount(same.servings + amount)); continue; }
+    const item: RecipeIngredient = { foodId, servings: amount };
+    if (entry.unit === 'g' || entry.unit === 'raw') item.unit = entry.unit;
+    ingredients.push(item);
+  }
+  const recipe: Recipe = { id, name, portions: clamp(Math.round(portions), 1, MAX_PORTIONS), ingredients };
+  const weight = finite(raw.cookedWeight);
+  if (weight !== null && weight > 0 && weight <= MAX_COOKED_WEIGHT) recipe.cookedWeight = weight;
+  return recipe;
+}
+
 function sanitizeExercise(raw: unknown): ExerciseDef | null {
   if (!isObject(raw)) return null;
   const id = text(raw.id, 80);
@@ -167,8 +195,18 @@ export function sanitizeState(raw: Raw, warnings: string[]): AppState {
   const base = defaultState();
   const customFoods = Array.isArray(raw.customFoods) ? raw.customFoods.map(sanitizeFood).filter((x): x is Food => !!x) : [];
   const customExercises = Array.isArray(raw.customExercises) ? raw.customExercises.map(sanitizeExercise).filter((x): x is ExerciseDef => !!x) : [];
-  const knownFoods = new Set([...customFoods.map((f) => f.id)]);
-  const isKnownFood = { has: (id: string) => knownFoods.has(id) || isBuiltInFood(id) };
+  const customIds = new Set(customFoods.map((f) => f.id));
+  const isBaseFood = (id: string) => customIds.has(id) || isBuiltInFood(id);
+  const droppedIngredients = { ingredients: 0 };
+  const recipes: Recipe[] = [];
+  for (const entry of Array.isArray(raw.recipes) ? raw.recipes : []) {
+    const recipe = sanitizeRecipe(entry, isBaseFood, droppedIngredients);
+    if (recipe && !recipes.some((r) => r.id === recipe.id)) recipes.push(recipe);
+  }
+  const skipped = droppedIngredients.ingredients;
+  if (skipped) warnings.push(`Skipped ${skipped} recipe ingredient${skipped === 1 ? '' : 's'} that aren't in the food list.`);
+  const recipeIds = new Set(recipes.map((r) => r.id));
+  const isKnownFood = { has: (id: string) => isBaseFood(id) || recipeIds.has(id) };
   const knownExercises = new Set([...EXERCISES.map((e) => e.id), ...customExercises.map((e) => e.id)]);
   const mealSlots = sanitizeSlots(raw.mealSlots);
   const dropped = { foods: 0, exercises: 0 };
@@ -190,7 +228,8 @@ export function sanitizeState(raw: Raw, warnings: string[]): AppState {
     fat: fat !== null ? clamp(fat, FAT_MIN, FAT_MAX) : base.fat,
     customFoods,
     customExercises,
-    yieldOverrides: sanitizeOverrides(raw.yieldOverrides, isKnownFood),
+    recipes,
+    yieldOverrides: sanitizeOverrides(raw.yieldOverrides, { has: isBaseFood }),
     mealSlots,
     plan,
     schedule,
@@ -270,7 +309,7 @@ export function parseBackup(json: string): ParseResult {
   return { ok: true, state: sanitizeState(body, warnings), warnings };
 }
 
-export interface BackupSummary { foods: number; exercises: number; customFoods: number; customExercises: number; profile: boolean; }
+export interface BackupSummary { foods: number; exercises: number; customFoods: number; customExercises: number; recipes: number; profile: boolean; }
 
 export function summarize(state: AppState): BackupSummary {
   return {
@@ -278,6 +317,7 @@ export function summarize(state: AppState): BackupSummary {
     exercises: state.schedule.reduce((n, d) => n + d.length, 0),
     customFoods: state.customFoods.length,
     customExercises: state.customExercises.length,
+    recipes: state.recipes.length,
     profile: !!(state.fields.age && state.fields.sex && state.fields.weight),
   };
 }

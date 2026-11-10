@@ -13,6 +13,7 @@ export const MealIcon = (p: IconProps) => <Svg {...p}><path d="M7 3v8a2 2 0 0 0 
 export const DumbbellIcon = (p: IconProps) => <Svg {...p}><path d="M6 7v10" /><path d="M3 9v6" /><path d="M18 7v10" /><path d="M21 9v6" /><path d="M6 12h12" /></Svg>;
 export const TargetIcon = (p: IconProps) => <Svg {...p}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></Svg>;
 export const AppleIcon = (p: IconProps) => <Svg {...p}><path d="M12 7c-2-2-7-2-8 3-1 5 3 11 5 11 1 0 2-1 3-1s2 1 3 1c2 0 6-6 5-11-1-5-6-5-8-3z" /><path d="M12 7c0-2 1-4 3-4" /></Svg>;
+export const PotIcon = (p: IconProps) => <Svg {...p}><path d="M4 10h16v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z" /><path d="M2 10h2" /><path d="M20 10h2" /><path d="M9 3c0 1.5 1 1.5 1 3" /><path d="M14 3c0 1.5 1 1.5 1 3" /></Svg>;
 export const ListIcon = (p: IconProps) => <Svg {...p}><path d="M9 6h11" /><path d="M9 12h11" /><path d="M9 18h11" /><path d="M4 6l1 1 1.5-2" /><path d="M4 12l1 1 1.5-2" /><path d="M4 18l1 1 1.5-2" /></Svg>;
 export const RulerIcon = (p: IconProps) => <Svg {...p}><path d="M3 16L16 3l5 5L8 21z" /><path d="M7 12l2 2" /><path d="M10 9l2 2" /><path d="M13 6l2 2" /></Svg>;
 export const TrendIcon = (p: IconProps) => <Svg {...p}><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></Svg>;

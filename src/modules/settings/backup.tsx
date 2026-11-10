@@ -57,7 +57,7 @@ function ImportReview({ result, onClose }: { result: ParseOk; onClose: () => voi
       <ul class="progress-steps">
         <li>{s.profile ? 'A saved profile' : 'No profile details'}</li>
         <li>{s.foods} planned food{s.foods === 1 ? '' : 's'} and {s.exercises} scheduled workout{s.exercises === 1 ? '' : 's'}</li>
-        <li>{s.customFoods} custom food{s.customFoods === 1 ? '' : 's'} and {s.customExercises} custom exercise{s.customExercises === 1 ? '' : 's'}</li>
+        <li>{s.customFoods} custom food{s.customFoods === 1 ? '' : 's'}, {s.recipes} recipe{s.recipes === 1 ? '' : 's'} and {s.customExercises} custom exercise{s.customExercises === 1 ? '' : 's'}</li>
       </ul>
       <Notices items={result.warnings.map((text) => ({ level: 'warn' as const, text }))} />
       <div class="row">
@@ -127,7 +127,7 @@ export function BackupCard() {
         }}
       />
       {error && <div class="notice danger" role="alert">{error}</div>}
-      <p class="note">Sent a backup in Messages? Press and hold it, choose Save to Files, then import it here. Backups include everything: profile, targets, macros, plans, workouts, your own foods and exercises, yields and layout.</p>
+      <p class="note">Sent a backup in Messages? Press and hold it, choose Save to Files, then import it here. Backups include everything: profile, targets, macros, plans, workouts, your own foods, recipes and exercises, yields and layout.</p>
       {review && <ImportReview result={review} onClose={() => setReview(null)} />}
       {pasteOpen && (
         <Sheet title="Paste backup text" onClose={() => setPasteOpen(false)}>

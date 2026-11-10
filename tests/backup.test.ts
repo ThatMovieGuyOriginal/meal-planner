@@ -14,11 +14,12 @@ function fullState(): AppState {
   s.protein = 1.8;
   s.fat = 33;
   s.customFoods = [{ id: 'custom-abc', name: 'Stew', category: 'Dairy', serving: '1 bowl', kcal: 300, p: 20, c: 30, f: 10, custom: true, weight: { g: 300, stage: 'cooked', yield: 0.9, rawLabel: 'raw ingredient for cooking' } }];
+  s.recipes = [{ id: 'recipe-abc', name: 'Rice bowls', portions: 4, cookedWeight: 1200, ingredients: [{ foodId: 'rice', servings: 6, unit: 'g' }, { foodId: 'custom-abc', servings: 1 }, { foodId: 'chicken', servings: 3.6, unit: 'raw' }] }];
   s.customExercises = [{ id: 'customex-abc', name: 'Barre', level: 'Moderate', met: 4, custom: true }];
   s.yieldOverrides = { rice: { yield: 2.5, edibleYield: 1 } };
   s.mealSlots = [{ id: 'lunch', name: 'Midday' }, { id: 'breakfast', name: 'Breakfast' }, { id: 'meal-x1', name: 'Pre-workout' }];
   s.plan = s.plan.map(() => ({ lunch: [], breakfast: [], 'meal-x1': [] }));
-  s.plan[2] = { lunch: [{ foodId: 'rice', servings: 1.5 }, { foodId: 'custom-abc', servings: 0.25 }], breakfast: [], 'meal-x1': [{ foodId: 'egg', servings: 2 }] };
+  s.plan[2] = { lunch: [{ foodId: 'rice', servings: 1.5 }, { foodId: 'custom-abc', servings: 0.25 }], breakfast: [], 'meal-x1': [{ foodId: 'egg', servings: 2 }, { foodId: 'recipe-abc', servings: 1.5 }] };
   s.schedule[4] = [{ exerciseId: 'customex-abc', minutes: 45 }, { exerciseId: 'walking-brisk', minutes: 30 }];
   s.moduleOrder = ['meals', 'today', 'foods'];
   s.hiddenModules = ['timeline'];
@@ -56,7 +57,7 @@ describe('export and import', () => {
   });
 
   it('summarizes what a backup holds', () => {
-    expect(summarize(fullState())).toEqual({ foods: 3, exercises: 2, customFoods: 1, customExercises: 1, profile: true });
+    expect(summarize(fullState())).toEqual({ foods: 4, exercises: 2, customFoods: 1, customExercises: 1, recipes: 1, profile: true });
   });
 
   it('rejects files it cannot use, leaving nothing changed', () => {

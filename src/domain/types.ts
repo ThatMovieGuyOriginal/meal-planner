@@ -1,6 +1,7 @@
 export const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
 export const DAY_COUNT = DAYS.length;
-export const SCHEMA_VERSION = 7;
+/** 8 added recipes. Older app versions refuse newer backups instead of silently dropping recipes. */
+export const SCHEMA_VERSION = 8;
 
 export type Stage = 'ready' | 'dry' | 'cooked';
 
@@ -30,6 +31,8 @@ export interface Food {
   f: number;
   weight?: FoodWeight;
   custom?: boolean;
+  /** Set on the food made from a saved recipe; one serving is one portion. */
+  recipe?: boolean;
 }
 
 export interface ExerciseDef {
@@ -52,6 +55,26 @@ export interface PlanItem {
 
 /** Items per meal slot id, in the order she arranged them. */
 export type DayPlan = Record<string, PlanItem[]>;
+
+/** How an ingredient amount was entered, so it reopens the same way. Absent means servings. */
+export type AmountUnit = 'servings' | 'g' | 'raw';
+
+export interface RecipeIngredient {
+  foodId: string;
+  /** Servings of the food, as for planned foods, but not rounded to quarters. */
+  servings: number;
+  unit?: 'g' | 'raw';
+}
+
+export interface Recipe {
+  id: string;
+  name: string;
+  /** How many portions the whole recipe makes. One planned serving is one portion. */
+  portions: number;
+  /** Optional weight of the whole finished dish in grams, so a portion can be weighed out. */
+  cookedWeight?: number;
+  ingredients: RecipeIngredient[];
+}
 
 export interface ScheduleEntry {
   exerciseId: string;
@@ -98,6 +121,7 @@ export interface AppState {
   /** Fat as a percentage of the day's calories. */
   fat: number;
   customFoods: Food[];
+  recipes: Recipe[];
   customExercises: ExerciseDef[];
   yieldOverrides: Record<string, YieldOverride>;
   mealSlots: MealSlot[];

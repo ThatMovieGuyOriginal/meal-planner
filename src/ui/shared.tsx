@@ -1,12 +1,12 @@
 import { useState } from 'preact/hooks';
-import { FOOD_CATEGORIES, allFoods, filterFoods, foodCategories, foodWeight } from '../domain/foods';
+import { FOOD_CATEGORIES, filterFoods, foodCategories, foodWeight } from '../domain/foods';
 import { makeCustomId } from '../domain/exercises';
 import { num, one, fmt, servingsText } from '../domain/format';
 import { addServings, moveAmount, moveOneServing, reorderItem, setServings, copyMeals } from '../domain/plan';
 import { prepInfo } from '../domain/prep';
 import { DAYS, type Food, type FoodWeight, type Stage } from '../domain/types';
-import { getFoodMap, getState, setUi, showToast, update, updateWithUndo, useStore } from '../state/store';
-import { Field, NumberInput, Select, Sheet, Stepper, TextInput } from './components';
+import { getAllFoods, getFoodMap, getState, setUi, showToast, update, updateWithUndo, useStore } from '../state/store';
+import { DayStrip, Field, NumberInput, Select, Sheet, Stepper, TextInput } from './components';
 import { DownIcon, PlusIcon, RightIcon, UpIcon } from './icons';
 
 export function macrosLine(food: Food, n: number): string {
@@ -37,6 +37,38 @@ export function PrepPreview({ food, servings }: { food: Food; servings: number }
   );
 }
 
+/** Adds a chosen food or recipe to a meal on the selected day. */
+export function AddToMealSheet({ food, onClose }: { food: Food; onClose: () => void }) {
+  const { state, ui } = useStore();
+  const [meal, setMeal] = useState(ui.mealId && state.mealSlots.some((s) => s.id === ui.mealId) ? ui.mealId : state.mealSlots[0].id);
+  const [amount, setAmount] = useState('1');
+  const n = Number(amount);
+  const ok = n > 0 && n <= 100;
+  const slot = state.mealSlots.find((s) => s.id === meal);
+  return (
+    <Sheet title={`Add ${food.name}`} onClose={onClose}>
+      <DayStrip />
+      <Field label="Meal"><Select value={meal} onValue={setMeal} options={state.mealSlots.map((s) => ({ value: s.id, label: s.name }))} /></Field>
+      <div class="label">Servings ({food.serving} each)</div>
+      <Stepper label="servings" value={amount} onValue={setAmount} step={0.25} />
+      {ok && <PrepPreview food={food} servings={n} />}
+      <button
+        type="button"
+        class="btn primary block"
+        disabled={!ok}
+        onClick={() => {
+          const day = ui.day;
+          updateWithUndo((s) => ({ ...s, plan: addServings(s.plan, day, meal, food.id, n) }), `Added ${servingsText(n)} × ${food.name} to ${slot?.name}, ${DAYS[day].slice(0, 3)}`);
+          setUi({ mealId: meal });
+          onClose();
+        }}
+      >
+        Add to {slot?.name} on {DAYS[ui.day].slice(0, 3)}
+      </button>
+    </Sheet>
+  );
+}
+
 /** Search, then pick how much. The sheet stays open so several foods can go in at once. */
 export function FoodPickerSheet({ mealId, onClose }: { mealId: string; onClose: () => void }) {
   const { state, ui } = useStore();
@@ -45,7 +77,7 @@ export function FoodPickerSheet({ mealId, onClose }: { mealId: string; onClose: 
   const [category, setCategory] = useState('All');
   const [picked, setPicked] = useState<Food | null>(null);
   const [amount, setAmount] = useState('1');
-  const foods = allFoods(state.customFoods);
+  const foods = getAllFoods();
   const shown = filterFoods(foods, query, category);
   const slot = state.mealSlots.find((s) => s.id === meal);
 

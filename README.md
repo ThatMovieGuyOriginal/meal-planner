@@ -32,7 +32,7 @@ their saved order.
 
 ## Rules that protect saved data
 
-- **Never rename a food or exercise id.** Saved plans and backups refer to them.
+- **Never rename a food or exercise id.** Saved plans, recipes and backups refer to them.
 - **New saved settings** go in `AppState` and `defaultState()`, and need a line in `sanitizeState()` in
   `src/state/backup.ts`. The round-trip test fails if an exported setting doesn't come back.
 - **Incompatible changes to the saved format** need a bump to `SCHEMA_VERSION` and a migration in `parseBackup()`.

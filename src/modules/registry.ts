@@ -3,6 +3,7 @@ import { exerciseModule } from './exercise';
 import { foodsModule } from './foods';
 import { mealsModule } from './meals';
 import { prepModule } from './prep';
+import { recipesModule } from './recipes';
 import { createSettingsModule } from './settings';
 import { targetsModule } from './targets';
 import { timelineModule } from './timeline';
@@ -16,6 +17,7 @@ export const MODULES: AppModule[] = [
   exerciseModule,
   targetsModule,
   foodsModule,
+  recipesModule,
   prepModule,
   bodyModule,
   timelineModule,

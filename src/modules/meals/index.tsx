@@ -1,12 +1,14 @@
 import { useState } from 'preact/hooks';
-import { allFoods, filterFoods, foodCategories } from '../../domain/foods';
+import { filterFoods, foodCategories } from '../../domain/foods';
+import { ingredientsFromItems } from '../../domain/recipes';
 import { addServings, dayItems, moveOneServing, removeServings, totalsFor, emptyDay } from '../../domain/plan';
 import { fmt, one, servingsText } from '../../domain/format';
 import { DAYS, type MealSlot } from '../../domain/types';
-import { getFoodMap, getMacros, getTargets, updateWithUndo, useStore } from '../../state/store';
+import { getAllFoods, getFoodMap, getMacros, getTargets, updateWithUndo, useStore } from '../../state/store';
 import { Card, ConfirmSheet, DayMeters, DayStrip, Field, Meter, Select, StatTile, TextInput } from '../../ui/components';
 import { MealIcon, PlusIcon, RightIcon } from '../../ui/icons';
 import { CopySheet, EditItemSheet, FoodPickerSheet, PrepLines, macrosLine } from '../../ui/shared';
+import { RecipeEditorSheet } from '../recipes/editor';
 import type { AppModule } from '../types';
 
 /** The item being dragged on desktop. Touch screens use the Add food sheet instead. */
@@ -14,7 +16,7 @@ type Dragged = { type: 'library'; id: string } | { type: 'meal'; id: string; mea
 let dragged: Dragged | null = null;
 const canDrag = () => typeof matchMedia === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-function MealCard({ slot, day, onAdd, onEdit, onCopy }: { slot: MealSlot; day: number; onAdd: () => void; onEdit: (foodId: string) => void; onCopy: () => void }) {
+function MealCard({ slot, day, onAdd, onEdit, onCopy, onSaveRecipe }: { slot: MealSlot; day: number; onAdd: () => void; onEdit: (foodId: string) => void; onCopy: () => void; onSaveRecipe: () => void }) {
   const { state } = useStore();
   const [over, setOver] = useState(false);
   const foods = getFoodMap();
@@ -71,7 +73,10 @@ function MealCard({ slot, day, onAdd, onEdit, onCopy }: { slot: MealSlot; day: n
           </button>
         );
       })}
-      <button type="button" class="btn block" onClick={onAdd}><PlusIcon /> Add food</button>
+      <div class="row">
+        <button type="button" class="btn grow" onClick={onAdd}><PlusIcon /> Add food</button>
+        {items.length > 0 && <button type="button" class="btn subtle" aria-label={`Save ${slot.name} as a recipe`} onClick={onSaveRecipe}>Save as recipe</button>}
+      </div>
       <div class="meal-totals tabular">
         <strong>{fmt(t.kcal)} kcal</strong><span>P {one(t.p)}g</span><span>C {one(t.c)}g</span><span>F {one(t.f)}g</span>
       </div>
@@ -80,10 +85,10 @@ function MealCard({ slot, day, onAdd, onEdit, onCopy }: { slot: MealSlot; day: n
 }
 
 function LibraryPanel() {
-  const { state } = useStore();
+  useStore();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
-  const foods = allFoods(state.customFoods);
+  const foods = getAllFoods();
   return (
     <section class="card library-panel" aria-label="Food library">
       <h2>Foods</h2>
@@ -119,6 +124,7 @@ function MealsScreen() {
   const [editing, setEditing] = useState<{ mealId: string; foodId: string } | null>(null);
   const [copying, setCopying] = useState<{ mealId?: string } | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [recipeFrom, setRecipeFrom] = useState<string | null>(null);
   const [trashOver, setTrashOver] = useState(false);
   const diff = totals.kcal - macros.calories;
   const dropRemove = (e: DragEvent) => {
@@ -148,6 +154,7 @@ function MealsScreen() {
                 onAdd={() => setAdding(slot.id)}
                 onEdit={(foodId) => setEditing({ mealId: slot.id, foodId })}
                 onCopy={() => setCopying({ mealId: slot.id })}
+                onSaveRecipe={() => setRecipeFrom(slot.id)}
               />
             ))}
           </div>
@@ -180,6 +187,7 @@ function MealsScreen() {
       </div>
       {adding && <FoodPickerSheet mealId={adding} onClose={() => setAdding(null)} />}
       {editing && <EditItemSheet {...editing} onClose={() => setEditing(null)} />}
+      {recipeFrom && <RecipeEditorSheet startWith={ingredientsFromItems(state.plan[day][recipeFrom] ?? [], state.recipes, foods)} onClose={() => setRecipeFrom(null)} />}
       {copying && <CopySheet mealId={copying.mealId} onClose={() => setCopying(null)} />}
       {clearing && (
         <ConfirmSheet

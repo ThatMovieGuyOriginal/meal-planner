@@ -60,6 +60,6 @@ export function exerciseLookup(custom: ExerciseDef[]): Map<string, ExerciseDef> 
   return new Map([...EXERCISES, ...custom].map((e) => [e.id, e]));
 }
 
-export function makeCustomId(prefix: 'custom' | 'customex'): string {
+export function makeCustomId(prefix: 'custom' | 'customex' | 'recipe'): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }

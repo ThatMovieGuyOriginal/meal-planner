@@ -140,13 +140,29 @@ export function DayMeters({ totals, macros }: { totals: Totals; macros: Macros }
   );
 }
 
+interface SplitPart { name: string; pct: number; grams: number; color: string; }
+
 /** Thin bar showing how a day's calories split between macros; the legend carries names and figures. */
 export function MacroBar({ macros }: { macros: Macros }) {
-  const parts = [
+  return <SplitBar parts={[
     { name: 'Protein', pct: macros.proteinPct, grams: macros.proteinGrams, color: 'var(--protein)' },
     { name: 'Carbs', pct: macros.carb, grams: macros.carbGrams, color: 'var(--carbs)' },
     { name: 'Fat', pct: macros.fat, grams: macros.fatGrams, color: 'var(--fat)' },
-  ];
+  ]} />;
+}
+
+/** The same split worked out from grams, for a recipe or anything else that has no target. */
+export function MacroSplit({ totals }: { totals: Totals }) {
+  const energy = totals.p * 4 + totals.c * 4 + totals.f * 9;
+  if (!(energy > 0)) return null;
+  return <SplitBar parts={[
+    { name: 'Protein', pct: (totals.p * 400) / energy, grams: totals.p, color: 'var(--protein)' },
+    { name: 'Carbs', pct: (totals.c * 400) / energy, grams: totals.c, color: 'var(--carbs)' },
+    { name: 'Fat', pct: (totals.f * 900) / energy, grams: totals.f, color: 'var(--fat)' },
+  ]} />;
+}
+
+function SplitBar({ parts }: { parts: SplitPart[] }) {
   return (
     <div class="stack">
       <div class="macro-bar" role="img" aria-label={parts.map((p) => `${p.name} ${one(p.pct)}%`).join(', ')}>

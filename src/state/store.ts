@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from 'preact/hooks';
 import { computeMacros, computeTargets, type Macros, type Targets } from '../domain/calc';
-import { foodLookup } from '../domain/foods';
+import { allFoodsWithRecipes, foodLookupWithRecipes } from '../domain/recipes';
 import type { AppState, Food } from '../domain/types';
 import { convertLegacy, parseBackup, sanitizeState } from './backup';
 import { defaultState } from './defaults';
@@ -141,11 +141,18 @@ export function getTargets(): Targets {
 }
 export function getMacros(day: number): Macros { return computeMacros(getTargets(), day, state.fat); }
 
-let foodsMemo: { source: Food[]; value: Map<string, Food> } | null = null;
-export function getFoodMap(): Map<string, Food> {
-  if (foodsMemo?.source !== state.customFoods) foodsMemo = { source: state.customFoods, value: foodLookup(state.customFoods) };
-  return foodsMemo.value;
+let foodsMemo: { foods: Food[]; recipes: AppState['recipes']; map: Map<string, Food>; list: Food[] } | null = null;
+function foodsFor(s: AppState) {
+  if (foodsMemo?.foods !== s.customFoods || foodsMemo.recipes !== s.recipes) {
+    const map = foodLookupWithRecipes(s.customFoods, s.recipes);
+    foodsMemo = { foods: s.customFoods, recipes: s.recipes, map, list: allFoodsWithRecipes(s.customFoods, map, s.recipes) };
+  }
+  return foodsMemo;
 }
+/** Every food by id, including one food per recipe. */
+export function getFoodMap(): Map<string, Food> { return foodsFor(state).map; }
+/** Every food alphabetically, recipes included. */
+export function getAllFoods(): Food[] { return foodsFor(state).list; }
 
 if (typeof window !== 'undefined') {
   // Never lose the last edit when Safari backgrounds or closes the tab.

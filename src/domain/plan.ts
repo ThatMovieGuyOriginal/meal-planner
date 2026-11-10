@@ -1,5 +1,5 @@
 import { clamp } from './format';
-import type { DayPlan, Food, MealSlot, PlanItem, Totals } from './types';
+import type { DayPlan, Food, MealSlot, PlanItem, Recipe, Totals } from './types';
 
 const MAX_SERVINGS = 100;
 const roundQuarter = (n: number) => Math.round(n * 4) / 4;
@@ -100,11 +100,19 @@ export interface Aggregated {
   servings: number;
 }
 
-/** Combines every serving of each food across the given days, alphabetical by food name. */
-export function aggregate(plan: DayPlan[], days: number[], slots: MealSlot[], foods: Map<string, Food>): Aggregated[] {
+/**
+ * Combines every serving of each food across the given days, alphabetical by food name.
+ * Pass recipes to break them into their ingredients, as a shopping list needs.
+ */
+export function aggregate(plan: DayPlan[], days: number[], slots: MealSlot[], foods: Map<string, Food>, expandRecipes: Recipe[] = []): Aggregated[] {
   const sums = new Map<string, number>();
+  const add = (id: string, n: number) => sums.set(id, (sums.get(id) ?? 0) + n);
   for (const day of days) {
-    for (const { foodId, servings } of dayItems(plan[day], slots)) sums.set(foodId, (sums.get(foodId) ?? 0) + servings);
+    for (const { foodId, servings } of dayItems(plan[day], slots)) {
+      const recipe = expandRecipes.find((r) => r.id === foodId);
+      if (recipe) for (const i of recipe.ingredients) add(i.foodId, (i.servings * servings) / recipe.portions);
+      else add(foodId, servings);
+    }
   }
   const out: Aggregated[] = [];
   for (const [id, servings] of sums) {

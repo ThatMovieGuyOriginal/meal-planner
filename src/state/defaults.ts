@@ -21,6 +21,7 @@ export function defaultState(): AppState {
     protein: 2.2,
     fat: 27,
     customFoods: [],
+    recipes: [],
     customExercises: [],
     yieldOverrides: {},
     mealSlots: DEFAULT_MEAL_SLOTS.map((s) => ({ ...s })),
