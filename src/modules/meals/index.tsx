@@ -7,7 +7,7 @@ import { DAYS, type MealSlot } from '../../domain/types';
 import { getAllFoods, getFoodMap, getMacros, getTargets, updateWithUndo, useStore } from '../../state/store';
 import { Card, ConfirmSheet, DayMeters, DayStrip, Field, Meter, Select, StatTile, TextInput } from '../../ui/components';
 import { MealIcon, PlusIcon, RightIcon } from '../../ui/icons';
-import { CopySheet, EditItemSheet, FoodPickerSheet, PrepLines, macrosLine } from '../../ui/shared';
+import { CopySheet, EditItemSheet, FoodPickerSheet, FoodSections, PrepLines, macrosLine } from '../../ui/shared';
 import { RecipeEditorSheet } from '../recipes/editor';
 import type { AppModule } from '../types';
 
@@ -98,16 +98,20 @@ function LibraryPanel() {
         <p class="note">Drag a food into a meal to add one serving.</p>
       </div>
       <div class="food-scroll">
-        {filterFoods(foods, query, category).map((f) => (
-          <div
-            key={f.id}
-            class="list-row"
-            draggable
-            onDragStart={(e) => { dragged = { type: 'library', id: f.id }; if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer?.setData('text/plain', f.id); }}
-          >
-            <div><b>{f.name}</b><div class="tiny">{f.serving} · {fmt(f.kcal)} kcal</div></div>
-          </div>
-        ))}
+        <FoodSections
+          foods={filterFoods(foods, query, category)}
+          empty={<div class="empty">No foods match.</div>}
+          row={(f) => (
+            <div
+              key={f.id}
+              class="list-row"
+              draggable
+              onDragStart={(e) => { dragged = { type: 'library', id: f.id }; if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer?.setData('text/plain', f.id); }}
+            >
+              <div><b>{f.name}</b><div class="tiny">{f.serving} · {fmt(f.kcal)} kcal</div></div>
+            </div>
+          )}
+        />
       </div>
     </section>
   );

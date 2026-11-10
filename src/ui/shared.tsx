@@ -1,13 +1,48 @@
+import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { FOOD_CATEGORIES, filterFoods, foodCategories, foodWeight } from '../domain/foods';
 import { makeCustomId } from '../domain/exercises';
 import { num, one, fmt, servingsText } from '../domain/format';
 import { addServings, moveAmount, moveOneServing, reorderItem, setServings, copyMeals } from '../domain/plan';
 import { prepInfo } from '../domain/prep';
+import { groupFoods } from '../domain/recipes';
 import { DAYS, type Food, type FoodWeight, type Stage } from '../domain/types';
 import { getAllFoods, getFoodMap, getState, setUi, showToast, update, updateWithUndo, useStore } from '../state/store';
 import { DayStrip, Field, NumberInput, Select, Sheet, Stepper, TextInput } from './components';
-import { DownIcon, PlusIcon, RightIcon, UpIcon } from './icons';
+import { DownIcon, PlusIcon, PotIcon, RightIcon, UpIcon } from './icons';
+
+/** "Portions" for a recipe, "Servings" for a single food. */
+export function amountWord(food: Food, n = 2): string {
+  const word = food.recipe ? 'portion' : 'serving';
+  return n === 1 ? word : `${word}s`;
+}
+
+/**
+ * A food list split into a recipes section and a single-foods section, recipes first.
+ * Headings only appear when there are recipes to tell apart.
+ */
+export function FoodSections({ foods, row, empty }: { foods: Food[]; row: (food: Food) => ComponentChildren; empty: ComponentChildren }) {
+  const groups = groupFoods(foods);
+  if (!groups.length) return <div class="list">{empty}</div>;
+  if (!groups.some((g) => g.title === 'Recipes')) return <div class="list">{foods.map(row)}</div>;
+  return (
+    <>
+      {groups.map((g) => {
+        const title = g.title === 'Recipes' ? 'Your recipes' : 'Single foods';
+        return (
+          <section key={g.title} class="food-group" aria-label={title}>
+            <h3 class="list-heading">
+              {g.title === 'Recipes' && <PotIcon />}
+              <span>{title}</span>
+              <span class="tiny">{g.foods.length}</span>
+            </h3>
+            <div class="list">{g.foods.map(row)}</div>
+          </section>
+        );
+      })}
+    </>
+  );
+}
 
 export function macrosLine(food: Food, n: number): string {
   return `${fmt(food.kcal * n)} kcal · P ${one(food.p * n)}g · C ${one(food.c * n)}g · F ${one(food.f * n)}g`;
@@ -49,8 +84,8 @@ export function AddToMealSheet({ food, onClose }: { food: Food; onClose: () => v
     <Sheet title={`Add ${food.name}`} onClose={onClose}>
       <DayStrip />
       <Field label="Meal"><Select value={meal} onValue={setMeal} options={state.mealSlots.map((s) => ({ value: s.id, label: s.name }))} /></Field>
-      <div class="label">Servings ({food.serving} each)</div>
-      <Stepper label="servings" value={amount} onValue={setAmount} step={0.25} />
+      {food.recipe ? <><div class="label">Portions</div><p class="small muted">{food.serving}</p></> : <div class="label">Servings ({food.serving} each)</div>}
+      <Stepper label={amountWord(food)} value={amount} onValue={setAmount} step={0.25} />
       {ok && <PrepPreview food={food} servings={n} />}
       <button
         type="button"
@@ -86,9 +121,9 @@ export function FoodPickerSheet({ mealId, onClose }: { mealId: string; onClose: 
     const ok = n > 0 && n <= 100;
     return (
       <Sheet title={picked.name} onClose={() => setPicked(null)}>
-        <p class="small muted">{picked.serving} per serving</p>
-        <div class="label">Servings</div>
-        <Stepper label="servings" value={amount} onValue={setAmount} step={0.25} />
+        <p class="small muted">{picked.recipe ? picked.serving : `${picked.serving} per serving`}</p>
+        <div class="label">{picked.recipe ? 'Portions' : 'Servings'}</div>
+        <Stepper label={amountWord(picked)} value={amount} onValue={setAmount} step={0.25} />
         <div class="chips">
           {[0.5, 1, 1.5, 2, 3].map((v) => <button key={v} type="button" class="chip" aria-pressed={n === v} onClick={() => setAmount(String(v))}>{servingsText(v)}</button>)}
         </div>
@@ -119,15 +154,16 @@ export function FoodPickerSheet({ mealId, onClose }: { mealId: string; onClose: 
         <Field label="Category"><Select value={category} onValue={setCategory} options={foodCategories(foods).map((c) => ({ value: c, label: c }))} /></Field>
       </div>
       <Field label="Search"><TextInput type="search" value={query} onValue={setQuery} placeholder="Egg, rice, chicken…" /></Field>
-      <div class="list">
-        {shown.map((f) => (
+      <FoodSections
+        foods={shown}
+        empty={<div class="empty">No foods match. You can add your own on the Foods screen.</div>}
+        row={(f) => (
           <button key={f.id} type="button" class="list-row" onClick={() => setPicked(f)}>
             <div><b>{f.name}</b><div class="tiny">{f.serving} · {fmt(f.kcal)} kcal · P {one(f.p)} · C {one(f.c)} · F {one(f.f)}</div></div>
             <PlusIcon class="chev" />
           </button>
-        ))}
-        {!shown.length && <div class="empty">No foods match. You can add your own on the Foods screen.</div>}
-      </div>
+        )}
+      />
       <button type="button" class="btn subtle block" onClick={onClose}>Done</button>
     </Sheet>
   );
@@ -156,9 +192,9 @@ export function EditItemSheet({ mealId, foodId, onClose }: { mealId: string; foo
 
   return (
     <Sheet title={food.name} onClose={onClose}>
-      <p class="small muted">One serving: {food.serving}. Weights and nutrition scale with quantity.</p>
-      <div class="label">Servings in {slotName}</div>
-      <Stepper label="servings" value={qty} onValue={(v) => { setQty(v); setError(''); }} step={0.25} />
+      <p class="small muted">{food.recipe ? `${food.serving}.` : `One serving: ${food.serving}.`} Weights and nutrition scale with quantity.</p>
+      <div class="label">{food.recipe ? 'Portions' : 'Servings'} in {slotName}</div>
+      <Stepper label={amountWord(food)} value={qty} onValue={(v) => { setQty(v); setError(''); }} step={0.25} />
       {valid && n > 0 && <PrepPreview food={food} servings={n} />}
       {error && <div class="notice danger">{error}</div>}
       <div class="row">
@@ -168,7 +204,7 @@ export function EditItemSheet({ mealId, foodId, onClose }: { mealId: string; foo
           onClick={() => {
             if (!valid) { setError('Enter a number from 0 to 100, or use Remove to delete this food.'); return; }
             const before = stored;
-            updateWithUndo((s) => ({ ...s, plan: setServings(s.plan, day, mealId, foodId, n) }), n > 0 ? `${food.name}: ${servingsText(n)} serving${n === 1 ? '' : 's'}` : `Removed ${food.name}`);
+            updateWithUndo((s) => ({ ...s, plan: setServings(s.plan, day, mealId, foodId, n) }), n > 0 ? `${food.name}: ${servingsText(n)} ${amountWord(food, n)}` : `Removed ${food.name}`);
             if (before !== n) setQty(String(n));
             onClose();
           }}

@@ -8,7 +8,7 @@ import type { Food } from '../../domain/types';
 import { getAllFoods, updateWithUndo, useStore } from '../../state/store';
 import { ConfirmSheet, Card, Field, Select, TextInput } from '../../ui/components';
 import { AppleIcon, EditIcon, PlusIcon, TrashIcon } from '../../ui/icons';
-import { AddToMealSheet, FoodFormSheet, YieldSheet } from '../../ui/shared';
+import { AddToMealSheet, FoodFormSheet, FoodSections, YieldSheet } from '../../ui/shared';
 import { RecipeEditorSheet } from '../recipes/editor';
 import type { AppModule } from '../types';
 
@@ -33,8 +33,10 @@ function FoodsScreen() {
           <Field label="Category"><Select value={categories.includes(category) ? category : 'All'} onValue={setCategory} options={categories.map((c) => ({ value: c, label: c }))} /></Field>
         </div>
         <button type="button" class="btn block" onClick={() => setForm('new')}><PlusIcon /> Add your own food</button>
-        <div class="list">
-          {shown.map((f) => {
+        <FoodSections
+          foods={shown}
+          empty={<div class="empty">No foods match. Add it as your own food above.</div>}
+          row={(f) => {
             const w = foodWeight(f, state.yieldOverrides);
             return (
               <div class="list-row" key={f.id}>
@@ -52,9 +54,8 @@ function FoodsScreen() {
                 </div>
               </div>
             );
-          })}
-          {!shown.length && <div class="empty">No foods match. Add it as your own food above.</div>}
-        </div>
+          }}
+        />
       </Card>
       <p class="tiny" style={{ padding: '0 4px' }}>Approximate USDA FoodData Central reference values. Sources are listed in Settings.</p>
       {adding && <AddToMealSheet food={adding} onClose={() => setAdding(null)} />}

@@ -4,6 +4,7 @@ import type { AppModule } from '../modules/types';
 import { getUi, setUi, useStore } from '../state/store';
 import { GearIcon, MoreIcon, RightIcon } from '../ui/icons';
 import { MORE_ROUTE, useRoute } from './router';
+import { reloadForUpdate } from './updates';
 
 function NavLink({ module, active }: { module: AppModule; active: boolean }) {
   const Icon = module.icon;
@@ -76,6 +77,12 @@ export function App() {
         </header>
         <main class="content">
           {ui.loadError && <div class="notice danger" role="alert">{ui.loadError}</div>}
+          {ui.updateReady && (
+            <div class="notice info update-ready" role="status">
+              <span>A new version of the planner is ready.</span>
+              <button type="button" class="btn" onClick={reloadForUpdate}>Update now</button>
+            </div>
+          )}
           {ui.saveFailed && <div class="notice danger" role="alert">Changes can't be saved in this browser right now. Private Browsing or full storage can cause this. Save a backup before closing this page.</div>}
           {Screen ? <Screen key={active?.id} /> : <MoreScreen modules={overflow} />}
         </main>

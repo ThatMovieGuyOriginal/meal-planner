@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { foodLookup } from '../src/domain/foods';
+import { foodCategories, foodLookup } from '../src/domain/foods';
 import { aggregate, totalsFor } from '../src/domain/plan';
 import { prepInfo } from '../src/domain/prep';
 import {
-  addIngredient, amountText, foodLookupWithRecipes, fromServings, ingredientsFromItems, listedWeight, recipeFood,
+  addIngredient, allFoodsWithRecipes, amountText, foodLookupWithRecipes, fromServings, groupFoods, ingredientsFromItems, listedWeight, recipeFood,
   removeIngredientEverywhere, scaleIngredients, toServings, unitsFor,
 } from '../src/domain/recipes';
 import { makeBackup, parseBackup } from '../src/state/backup';
@@ -96,6 +96,30 @@ describe('ingredient amounts', () => {
   it('adds up listed weights only when every ingredient has one', () => {
     expect(listedWeight(bowls.ingredients, base)).toBeCloseTo(400 + 600 + 27, 6);
     expect(listedWeight([...bowls.ingredients, { foodId: 'milk', servings: 1 }], base)).toBe(0);
+  });
+});
+
+describe('recipes in food lists', () => {
+  const recipes: Recipe[] = [{ ...bowls, id: 'recipe-z', name: 'Zesty pasta' }, bowls];
+  const list = allFoodsWithRecipes([], foodLookupWithRecipes([], recipes), recipes);
+
+  it('lists recipes first, alphabetically, then single foods alphabetically', () => {
+    expect(list.slice(0, 2).map((f) => f.name)).toEqual(['Chicken rice bowls', 'Zesty pasta']);
+    expect(list.slice(2).every((f) => !f.recipe)).toBe(true);
+    const names = list.slice(2).map((f) => f.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })));
+  });
+
+  it('splits a list into a recipes group and a foods group', () => {
+    expect(groupFoods(list).map((g) => [g.title, g.foods.length])).toEqual([['Recipes', 2], ['Foods', list.length - 2]]);
+    expect(groupFoods(list.filter((f) => !f.recipe)).map((g) => g.title)).toEqual(['Foods']);
+    expect(groupFoods([])).toEqual([]);
+  });
+
+  it('puts the Recipes category straight after All', () => {
+    const cats = foodCategories(list);
+    expect(cats.slice(0, 2)).toEqual(['All', 'Recipes']);
+    expect(foodCategories(list.filter((f) => !f.recipe))).not.toContain('Recipes');
   });
 });
 

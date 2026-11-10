@@ -1,9 +1,9 @@
 import { compareNames, gw, servingsText } from './format';
-import { allFoods, foodLookup, foodWeight } from './foods';
+import { RECIPE_CATEGORY, allFoods, foodLookup, foodWeight } from './foods';
 import { totalsFor } from './plan';
 import type { AmountUnit, Food, PlanItem, Recipe, RecipeIngredient, Totals, YieldOverride } from './types';
 
-export const RECIPE_CATEGORY = 'Recipes';
+export { RECIPE_CATEGORY };
 export const MAX_PORTIONS = 100;
 export const MAX_INGREDIENT_SERVINGS = 1000;
 export const MAX_COOKED_WEIGHT = 100000;
@@ -58,8 +58,21 @@ export function foodLookupWithRecipes(customFoods: Food[], recipes: Recipe[]): M
 }
 
 /** Every food alphabetically, recipes included, for pickers and the library. */
+/** Every food she can plan: her recipes first, then single foods, each alphabetical. */
 export function allFoodsWithRecipes(customFoods: Food[], foodMap: Map<string, Food>, recipes: Recipe[]): Food[] {
-  return allFoods([...customFoods, ...recipes.map((r) => foodMap.get(r.id)).filter((f): f is Food => !!f)]);
+  const recipeFoods = sortRecipes(recipes).map((r) => foodMap.get(r.id)).filter((f): f is Food => !!f);
+  return [...recipeFoods, ...allFoods(customFoods)];
+}
+
+export interface FoodGroup { title: 'Recipes' | 'Foods'; foods: Food[] }
+
+/** Splits a list into recipes and single foods, recipes first, leaving out an empty group. */
+export function groupFoods(foods: Food[]): FoodGroup[] {
+  const groups: FoodGroup[] = [
+    { title: 'Recipes', foods: foods.filter((f) => f.recipe) },
+    { title: 'Foods', foods: foods.filter((f) => !f.recipe) },
+  ];
+  return groups.filter((g) => g.foods.length > 0);
 }
 
 export function sortRecipes(recipes: Recipe[]): Recipe[] {

@@ -171,6 +171,8 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .notice svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
 .notice.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-text); }
 .notice.info { background: #f0f4fc; border: 1px solid #dfe7f6; color: #33456a; }
+.notice.update-ready { align-items: center; justify-content: space-between; }
+.notice.update-ready .btn { flex: none; }
 .notice.danger { background: var(--danger-soft); border: 1px solid #efc4c6; color: #7f2226; }
 
 /* Collapsible sections */
@@ -219,6 +221,17 @@ details.section > .section-body { padding: 0 14px 14px; display: grid; gap: 10px
 button.list-row { width: 100%; text-align: left; color: inherit; }
 button.list-row:hover { border-color: #a2b9ec; }
 .list-row b { font-size: 14px; }
+.food-group { display: grid; gap: 6px; }
+.list-heading {
+  display: flex; align-items: center; gap: 6px; margin: 4px 0 0; padding: 6px 2px;
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #3f4e69;
+}
+.list-heading svg { width: 18px; height: 18px; }
+.list-heading .tiny { margin-left: auto; font-weight: 600; letter-spacing: 0; text-transform: none; }
+/* Keeps the current section's name in view while scrolling a long list. */
+.sheet .list-heading, .food-scroll .list-heading { position: sticky; top: 0; z-index: 1; background: var(--panel); }
+/* Sticky offsets start inside the padding, so pull up over the sheet body's 14px top padding. */
+.sheet .list-heading { top: -14px; }
 .row-actions { display: flex; align-items: center; gap: 2px; flex: none; }
 .food-scroll { display: grid; gap: 6px; max-height: 60dvh; overflow: auto; -webkit-overflow-scrolling: touch; }
 .exercise-line { display: grid; grid-template-columns: minmax(0, 1fr) 86px 44px; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid #eef1f6; }

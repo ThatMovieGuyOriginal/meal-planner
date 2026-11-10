@@ -71,8 +71,13 @@ export function filterFoods(foods: Food[], query: string, category: string): Foo
   return foods.filter((f) => f.name.toLowerCase().includes(q) && (category === 'All' || f.category === category));
 }
 
+/** The category saved recipes are listed under. */
+export const RECIPE_CATEGORY = 'Recipes';
+
+/** Category filter options: All, then Recipes, then the rest alphabetically. */
 export function foodCategories(foods: Food[]): string[] {
-  return ['All', ...[...new Set(foods.map((f) => f.category))].sort(compareNames)];
+  const found = [...new Set(foods.map((f) => f.category))].sort(compareNames);
+  return ['All', ...found.filter((c) => c === RECIPE_CATEGORY), ...found.filter((c) => c !== RECIPE_CATEGORY)];
 }
 
 function inferredWeight(food: Food): FoodWeight | null {

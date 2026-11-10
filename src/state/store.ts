@@ -20,6 +20,8 @@ export interface UiState {
   loadError: string | null;
   persisted: boolean | null;
   toast: Toast | null;
+  /** A newer version has taken over in the background and is waiting for a reload. */
+  updateReady: boolean;
 }
 
 function load(): { state: AppState; error: string | null } {
@@ -48,7 +50,7 @@ function load(): { state: AppState; error: string | null } {
 
 const initial = load();
 let state: AppState = initial.state;
-let ui: UiState = { day: todayIndex(), mealId: null, saveFailed: false, loadError: initial.error, persisted: null, toast: null };
+let ui: UiState = { day: todayIndex(), mealId: null, saveFailed: false, loadError: initial.error, persisted: null, toast: null, updateReady: false };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
